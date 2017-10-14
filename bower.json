@@ -1,0 +1,24 @@
+{
+  "name": "auth_hf",
+  "authors": [
+    "Tobe O <thosakwe@gmail.com>"
+  ],
+  "description": "",
+  "main": "",
+  "license": "MIT",
+  "homepage": "",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "./web/bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bulma": "^0.6.0",
+    "font-awesome": "^4.7.0",
+    "jquery": "^3.2.1"
+  }
+}

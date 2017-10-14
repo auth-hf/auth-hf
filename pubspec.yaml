@@ -1,0 +1,16 @@
+name: "auth_hf"
+dependencies: 
+  angel_auth: "^1.1.0-alpha"
+  angel_configuration: "^1.1.0-alpha"
+  angel_framework: "^1.1.0-alpha"
+  angel_jael: "^1.0.0-alpha"
+  angel_model: "^1.0.0"
+  angel_mongo: "^1.0.0"
+  angel_serialize: "^1.0.0-alpha"
+  angel_static: "^1.3.0-alpha"
+  angel_validate: "^1.0.0"
+  angel_oauth2: 
+    git: "https://github.com/angel-dart/oauth2.git"
+dev_dependencies: 
+  angel_serialize_generator: "^1.0.0-alpha"
+  build_runner: "^0.5.0"

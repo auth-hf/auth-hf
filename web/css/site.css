@@ -1,0 +1,12 @@
+input.is-inverted.is-outlined {
+    background-color: transparent;
+    color: white;
+}
+
+input.is-inverted.is-outlined:active, input.is-inverted.is-outlined:focus {
+    border-color: white;
+}
+
+input.is-inverted.is-outlined::placeholder {
+    color: white;
+}

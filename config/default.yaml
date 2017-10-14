@@ -1,0 +1,2 @@
+mongo_db: mongodb://localhost:27017/auth_hf
+jwt_secret: $JWT_SECRET
