@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'models/models.dart';
 import 'account_settings.dart' as account_settings;
 import 'auth.dart' as auth;
+import 'scopes.dart' as access_scopes;
 
 Future configureServer(Angel app) async {
   app.group('/oauth2', (router) {
@@ -50,9 +51,31 @@ Future configureServer(Angel app) async {
 
     var validation = callValidator.check(await req.lazyBody());
 
-    // TODO: Enforce expiry
-    var uri = Uri.parse('https://hackforums.net/api/v1/' +
-        validation.data['endpoint'].replaceAll(leadingSlashes, ''));
+    var expirationDate =
+        token.createdAt.add(new Duration(milliseconds: token.lifeSpan));
+    var now = new DateTime.now().toUtc();
+
+    if (now.isAfter(expirationDate))
+      throw new AngelHttpException.notAuthenticated(
+          message: 'This authorization token is expired.');
+
+    var endpoint = validation.data['endpoint'];
+
+    // Check if the auth token permits this scope...
+    var scopes = _OAuth2.findScopes(token.scopes);
+    var requestedScope = access_scopes.all
+        .firstWhere((a) => a.stub == endpoint, orElse: () => null);
+
+    if (requestedScope == null)
+      throw new AngelHttpException.badRequest(
+          message: 'Invalid endpoint "$endpoint".');
+
+    if (!scopes.contains(requestedScope))
+      throw new AngelHttpException.forbidden(
+          message: 'The user has not granted you access to this endpoint.');
+
+    endpoint = endpoint.replaceAll(leadingSlashes, '');
+    var uri = Uri.parse('https://hackforums.net/api/v1/$endpoint');
 
     if (validation.data['query'] != null)
       uri = uri.replace(query: validation.data['query']);
@@ -65,8 +88,8 @@ Future configureServer(Angel app) async {
     var headers = {
       'Authorization': 'Basic ' + BASE64URL.encode('$apiKey:'.codeUnits),
     };
-    print('Outgoing headers: $headers');
 
+    print('Outgoing headers: $headers');
     print('Proxying $uri');
 
     var rq = new http.Request('GET', uri)..headers.addAll(headers);
@@ -111,6 +134,15 @@ class _OAuth2 extends auth.Server<Application, User> {
     return applications.isEmpty ? null : applications.first;
   }
 
+  static List<access_scopes.AccessScope> findScopes(Iterable<String> scopes) {
+    scopes ??= [];
+    return scopes
+        .map((s) => access_scopes.all
+            .firstWhere((a) => a.stub == s, orElse: () => null))
+        .where((a) => a != null)
+        .toList();
+  }
+
   @override
   Future<bool> verifyClient(Application client, String clientSecret) async {
     return client.secretKey == clientSecret;
@@ -130,13 +162,20 @@ class _OAuth2 extends auth.Server<Application, User> {
       String state,
       RequestContext req,
       ResponseContext res) async {
+    var accessScopes = findScopes(scopes);
+
+    if (accessScopes.isEmpty) {
+      throw new AngelHttpException.badRequest(
+          message: 'You must request at least one access scope.');
+    }
+
     var user = req.grab<User>(User);
     var code = new AuthCode(
       userId: user.id,
       applicationId: client.id,
       redirectUri: redirectUri,
       state: state,
-      scopes: scopes?.toList() ?? [],
+      scopes: accessScopes.map((a) => a.stub).toList(),
     );
 
     // Create an authorization code. The user must sign in to confirm this code.
@@ -147,6 +186,7 @@ class _OAuth2 extends auth.Server<Application, User> {
       'title': 'Authorize ${client.name}',
       'app': client,
       'code': code,
+      'scopes': accessScopes,
       'user': user,
     });
   }
@@ -157,14 +197,29 @@ class _OAuth2 extends auth.Server<Application, User> {
       isNonEmptyString,
       isIn(['accept', 'deny'])
     ],
+    'scopes*': [
+      isList,
+      isNotEmpty,
+      everyElement(allOf(
+        isNonEmptyString,
+        predicate(
+          (String s) => access_scopes.all.any((sc) => sc.stub == s),
+          'is a valid access scope',
+        ),
+      )),
+    ]
   });
 
   @override
   Future handleFormSubmission(RequestContext req, ResponseContext res) async {
+    print(await req.lazyBody());
     var validation = formValidator.check(await req.lazyBody());
 
     // Send them right back on an error...
-    if (validation.errors.isNotEmpty) return res.redirect(req.uri);
+    if (validation.errors.isNotEmpty) {
+      print(validation.errors);
+      return res.redirect(req.headers.value('referer') ?? req.uri.toString());
+    }
 
     String codeId = validation.data['confirm'], mode = validation.data['mode'];
     var code = await authCodeService.read(codeId).then(AuthCode.parse);
@@ -175,26 +230,36 @@ class _OAuth2 extends auth.Server<Application, User> {
       throw new AngelHttpException.forbidden(
           message: 'That authorization code does not belong to you.');
 
-    if (mode == 'deny') {
+    var grantedScopes = validation.data['scopes'] as List<String>;
+    Map queryParameters =
+        new Map<String, String>.from(redirectUri.queryParameters);
+
+    if (grantedScopes.isEmpty) {
       await authCodeService.remove(codeId);
-      redirectUri = redirectUri.replace(
-          queryParameters:
-              new Map<String, String>.from(redirectUri.queryParameters)
-                ..addAll({
-                  'error': 'access_denied',
-                  'error_description': 'The user refused to grant access.',
-                  'state': code.state ?? '',
-                }));
+      queryParameters.addAll({
+        'error': 'access_denied',
+        'error_description':
+            'The user did not grant access to any of the requested access scopes.',
+        'state': code.state ?? '',
+      });
+    } else if (mode == 'deny') {
+      await authCodeService.remove(codeId);
+      queryParameters.addAll({
+        'error': 'access_denied',
+        'error_description': 'The user refused to grant access.',
+        'state': code.state ?? '',
+      });
     } else {
-      redirectUri = redirectUri.replace(
-          queryParameters:
-              new Map<String, String>.from(redirectUri.queryParameters)
-                ..addAll({
-                  'code': code.id,
-                  'state': code.state ?? '',
-                }));
+      // Change the scopes to whatever the user has granted.
+      code.scopes = grantedScopes;
+      await authCodeService.modify(codeId, code.toJson());
+      queryParameters.addAll({
+        'code': code.id,
+        'state': code.state ?? '',
+      });
     }
 
+    redirectUri = redirectUri.replace(queryParameters: queryParameters);
     return res.redirect(redirectUri.toString());
   }
 
@@ -214,10 +279,7 @@ class _OAuth2 extends auth.Server<Application, User> {
       userId: code.userId,
       applicationId: code.applicationId,
       refreshToken: uuid.v4(),
-      lifeSpan: new DateTime.now()
-          .toUtc()
-          .add(const Duration())
-          .millisecondsSinceEpoch,
+      lifeSpan: const Duration(hours: 24).inMilliseconds,
       state: code.state,
       scopes: code.scopes,
     );

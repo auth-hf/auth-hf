@@ -29,17 +29,24 @@ main() async {
   var apps = await db.collection('applications').find().toList();
 
   if (apps.isEmpty)
-    throw new StateError('No applications available. Register at least one to run the example client.');
+    throw new StateError(
+        'No applications available. Register at least one to run the example client.');
 
   var application = Application.parse(apps.first);
 
-  var strategy =
-      new OAuth2Strategy('hf', new AngelAuthOAuth2Options(
+  var strategy = new OAuth2Strategy(
+      'hf',
+      new AngelAuthOAuth2Options(
         key: application.publicKey,
         secret: application.secretKey,
         authorizationEndpoint: 'http://localhost:3000/oauth2/authorize',
         tokenEndpoint: 'http://localhost:3000/oauth2/token',
-        callback: 'http://localhost:8080/auth/hf/callback'
+        callback: 'http://localhost:8080/auth/hf/callback',
+        scopes: const [
+          '/user',
+          '/pmbox/:id',
+          '/inbox',
+        ],
       ), (client) async {
     // Fetch current user
     var response = await client.post(
@@ -53,6 +60,11 @@ main() async {
     );
 
     print('Body: ${response.body}');
+
+    if (response.headers['content-type']?.contains('application/json') != true)
+      throw new AngelHttpException.notAuthenticated(
+          message: 'The user did not grant /user access.');
+
     var user = JSON.decode(response.body);
     print('User: $user');
     return user;
@@ -62,10 +74,14 @@ main() async {
 
   app.get('/auth/hf', auth.authenticate('hf'));
 
-  app.get('/auth/hf/callback', auth.authenticate('hf', new AngelAuthOptions(tokenCallback: (req, res, jwt, user) {
-    return user;
-  })));
+  app.get(
+      '/auth/hf/callback',
+      auth.authenticate('hf',
+          new AngelAuthOptions(tokenCallback: (req, res, jwt, user) {
+        return user;
+      })));
 
   var server = await app.startServer('127.0.0.1', 8080);
-  print('Example flow: http://${server.address.address}:${server.port}/auth/hf');
+  print(
+      'Example flow: http://${server.address.address}:${server.port}/auth/hf');
 }

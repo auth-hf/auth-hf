@@ -29,6 +29,12 @@ class User extends _User {
   List<Application> applications;
 
   @override
+  int loginAttempts;
+
+  @override
+  int firstLogin;
+
+  @override
   DateTime createdAt;
 
   @override
@@ -42,6 +48,8 @@ class User extends _User {
       this.apiKey,
       this.password,
       this.applications,
+      this.loginAttempts,
+      this.firstLogin,
       this.createdAt,
       this.updatedAt});
 
@@ -60,6 +68,8 @@ class User extends _User {
                     : (x is Application ? x : new Application.fromJson(x)))
                 .toList()
             : null,
+        loginAttempts: data['login_attempts'],
+        firstLogin: data['first_login'],
         createdAt: data['created_at'] is DateTime
             ? data['created_at']
             : (data['created_at'] is String
@@ -80,6 +90,8 @@ class User extends _User {
         'api_key': apiKey,
         'password': password,
         'applications': applications,
+        'login_attempts': loginAttempts,
+        'first_login': firstLogin,
         'created_at': createdAt == null ? null : createdAt.toIso8601String(),
         'updated_at': updatedAt == null ? null : updatedAt.toIso8601String()
       };

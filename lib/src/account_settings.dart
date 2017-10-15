@@ -90,16 +90,19 @@ Future configureServer(Angel app) async {
     res.redirect('/applications');
   });
 
-  router.get('/settings', (User user, ResponseContext res) {
-    if (user.apiKey != null) {
-      var aes = createAesEngine(user.salt, jwtSecret, false);
-      var apiKey = decryptApiKey(aes, user.apiKey);
-      print('Decrypted API key: $apiKey');
-    }
+  router.get('/settings',
+      (User user, Service authTokenService, ResponseContext res) async {
+    // Fetch all auth tokens
+    Iterable<AuthToken> tokens = await authTokenService.index({
+      'query': {
+        'user_id': user.id,
+      },
+    }).then((it) => it.map(AuthToken.parse));
 
-    return res.render('settings', {
+    await res.render('settings', {
       'title': 'Account Settings',
       'user': user,
+      'tokens': tokens,
     });
   });
 
@@ -118,6 +121,41 @@ Future configureServer(Angel app) async {
       user.apiKey = encryptApiKey(aes, apiKey);
       print('Encrypted API key: ${user.apiKey}');
       await userService.modify(user.id, user.toJson());
+    }
+
+    res.redirect('/settings');
+  });
+
+  var revokeValidator = new Validator({
+    'token*': isNonEmptyString,
+  });
+
+  router.post('/settings/revoke',
+      (User user, Service authTokenService, RequestContext req, res) async {
+    var validation = revokeValidator.check(await req.lazyBody());
+
+    if (validation.errors.isNotEmpty) {
+      throw new AngelHttpException.badRequest();
+    } else {
+      AuthToken token;
+
+      try {
+        token = await authTokenService
+            .read(validation.data['token'])
+            .then(AuthToken.parse);
+      } catch(_) {
+        // Ignore
+      }
+
+      if (token?.userId != user.id) {
+        // If we throw a different error, then it is obvious that this
+        // auth token exists... Which is a security risk.
+        //
+        // So, any error at this endpoint produces the same output.
+        throw new AngelHttpException.badRequest();
+      } else {
+        await authTokenService.remove(token.id);
+      }
     }
 
     res.redirect('/settings');

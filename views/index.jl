@@ -73,7 +73,7 @@
                     <i class="fa fa-lock"></i>
                     &nbsp; It's secure.
                 </h1>
-                <h2 class="subtitle">All data is stored securely.</h2>
+                <h2 class="subtitle">All data is safe from hackers.</h2>
                 <p>
                     No sensitive data, whether it be a password or API key,
                     is ever stored without being hashed or encrypted. All

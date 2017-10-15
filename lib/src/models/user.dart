@@ -11,4 +11,5 @@ class _User extends Model {
   bool confirmed;
   List<int> apiKey, password;
   List<Application> applications;
+  int loginAttempts, firstLogin;
 }

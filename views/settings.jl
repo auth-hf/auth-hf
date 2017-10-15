@@ -8,7 +8,7 @@
                         <span class="icon">
                             <i class="fa fa-cogs"></i>
                         </span>
-                        <span>{{ user.email }}</span>
+                        <span>&nbsp;{{ user.email }}</span>
                     </h1>
                     <h2 class="subtitle">Manage your account settings here.</h2>
                 </div>
@@ -62,13 +62,39 @@
                     <span class="icon">
                         <i class="fa fa-plug"></i>
                     </span>
-                    <span>Connected Applications</span>
+                    <span>&nbsp;Connected Applications</span>
                 </h1>
                 <h2 class="subtitle">
-                    You have authorized 0
+                    You have authorized {{ tokens.length }}&nbsp;
                     <a href="/applications">application(s)</a>
                     to use your HackForums.net account.
                 </h2>
+                <form for-each=tokens if=item.application != null method="post" action="/settings/revoke" class="box">
+                    <input name="token" type="hidden" value=item.id>
+                    <article class="media">
+                        <div class="media-content">
+                            <div class="content">
+                                <p>
+                                    <strong>
+                                        {{ item.application.name }}
+                                    </strong>
+                                    <br>
+                                    {{ item.application.description }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="media-right">
+                            <button class="button is-danger" type="submit">
+                                <span class="icon">
+                                    <i class="fa fa-trash"></i>
+                                </span>
+                                <span>
+                                    Revoke
+                                </span>
+                            </button>
+                        </div>
+                    </article>
+                </form>
             </div>
         </section>
     </block>
