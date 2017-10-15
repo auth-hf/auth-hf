@@ -10,3 +10,13 @@ input.is-inverted.is-outlined:active, input.is-inverted.is-outlined:focus {
 input.is-inverted.is-outlined::placeholder {
     color: white;
 }
+
+.navbar-burger {
+    background-color: transparent;
+    border-color: transparent;
+    color: white !important;
+}
+
+.navbar-dropdown {
+    background-color: transparent !important;;
+}

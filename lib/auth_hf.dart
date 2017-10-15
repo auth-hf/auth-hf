@@ -34,6 +34,13 @@ Future configureServer(Angel app) async {
 
   app.use(auth.parse);
 
+  app.get('/', (RequestContext req, ResponseContext res) {
+    return res.render('index', {
+      'title': 'Home',
+      'user': req.injections[User],
+    });
+  });
+
   await app.configure(services.configureServer(db));
   await app.configure(auth.configureServer);
   await app.configure(account_settings.configureServer);

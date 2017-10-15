@@ -1,4 +1,4 @@
-<nav class="navbar is-white" role="navigation">
+<nav class="navbar is-dark" role="navigation">
     <div class="navbar-brand">
         <a class="navbar-item" href="/">
             <span class="icon">
