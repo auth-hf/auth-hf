@@ -4,11 +4,16 @@
             <include src="navbar.jl"/>
             <div class="hero-body">
                 <div class="container has-text-centered">
-                    <h1 class="title">Log In</h1>
+                    <h1 class="title">
+                        <span class="icon">
+                            <i class="fa fa-user"></i>
+                        </span>
+                        <span>Log In</span>
+                    </h1>
                     <h2 class="subtitle">Get connected. Easily.</h2>
 
                     <div if=errors.isNotEmpty class="notification is-dark">
-                        <b>Couldn't log you in. Here's what went wrong:</b>
+                        <b>Something's not quite right:</b>
                         <ul>
                             <li for-each=errors>* {{ item }}</li>
                         </ul>

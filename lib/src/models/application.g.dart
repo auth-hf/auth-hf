@@ -1,32 +1,29 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of auth_hf.src.models.user;
+part of auth_hf.src.models.application;
 
 // **************************************************************************
 // Generator: JsonModelGenerator
 // **************************************************************************
 
-class User extends _User {
+class Application extends _Application {
   @override
   String id;
 
   @override
-  String email;
+  String userId;
 
   @override
-  String salt;
+  String name;
 
   @override
-  bool confirmed;
+  String description;
 
   @override
-  List<int> apiKey;
+  String publicKey;
 
   @override
-  List<int> password;
-
-  @override
-  List<Application> applications;
+  String secretKey;
 
   @override
   DateTime createdAt;
@@ -34,32 +31,24 @@ class User extends _User {
   @override
   DateTime updatedAt;
 
-  User(
+  Application(
       {this.id,
-      this.email,
-      this.salt,
-      this.confirmed,
-      this.apiKey,
-      this.password,
-      this.applications,
+      this.userId,
+      this.name,
+      this.description,
+      this.publicKey,
+      this.secretKey,
       this.createdAt,
       this.updatedAt});
 
-  factory User.fromJson(Map data) {
-    return new User(
+  factory Application.fromJson(Map data) {
+    return new Application(
         id: data['id'],
-        email: data['email'],
-        salt: data['salt'],
-        confirmed: data['confirmed'],
-        apiKey: data['api_key'],
-        password: data['password'],
-        applications: data['applications'] is List
-            ? data['applications']
-                .map((x) => x == null
-                    ? null
-                    : (x is Application ? x : new Application.fromJson(x)))
-                .toList()
-            : null,
+        userId: data['user_id'],
+        name: data['name'],
+        description: data['description'],
+        publicKey: data['public_key'],
+        secretKey: data['secret_key'],
         createdAt: data['created_at'] is DateTime
             ? data['created_at']
             : (data['created_at'] is String
@@ -74,19 +63,18 @@ class User extends _User {
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'email': email,
-        'salt': salt,
-        'confirmed': confirmed,
-        'api_key': apiKey,
-        'password': password,
-        'applications': applications,
+        'user_id': userId,
+        'name': name,
+        'description': description,
+        'public_key': publicKey,
+        'secret_key': secretKey,
         'created_at': createdAt == null ? null : createdAt.toIso8601String(),
         'updated_at': updatedAt == null ? null : updatedAt.toIso8601String()
       };
 
-  static User parse(Map map) => new User.fromJson(map);
+  static Application parse(Map map) => new Application.fromJson(map);
 
-  User clone() {
-    return new User.fromJson(toJson());
+  Application clone() {
+    return new Application.fromJson(toJson());
   }
 }

@@ -9,7 +9,18 @@ final List<BuildAction> buildActions = [
     ]),
     'auth_hf',
     inputs: const [
-      'lib/src/models/*.dart',
+      'lib/src/models/application.dart',
+    ],
+  ),
+  new BuildAction(
+    new PartBuilder([
+      const JsonModelGenerator(),
+    ]),
+    'auth_hf',
+    inputs: const [
+      'lib/src/models/auth_code.dart',
+      'lib/src/models/auth_token.dart',
+      'lib/src/models/user.dart',
     ],
   ),
 ];

@@ -4,7 +4,12 @@
             <include src="navbar.jl"/>
             <div class="hero-body">
                 <div class="container has-text-centered">
-                    <h1 class="title">Sign Up</h1>
+                    <h1 class="title">
+                        <span class="icon">
+                            <i class="fa fa-user-plus"></i>
+                        </span>
+                        <span>Sign Up</span>
+                    </h1>
                     <h2 class="subtitle">Use your HackForums account to securely log in to any site.</h2>
 
                     <div if=errors.isNotEmpty class="notification is-dark">

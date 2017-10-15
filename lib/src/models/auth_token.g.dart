@@ -1,32 +1,32 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of auth_hf.src.models.user;
+part of auth_hf.src.models.auth_token;
 
 // **************************************************************************
 // Generator: JsonModelGenerator
 // **************************************************************************
 
-class User extends _User {
+class AuthToken extends _AuthToken {
   @override
   String id;
 
   @override
-  String email;
+  String userId;
 
   @override
-  String salt;
+  String applicationId;
 
   @override
-  bool confirmed;
+  String state;
 
   @override
-  List<int> apiKey;
+  String refreshToken;
 
   @override
-  List<int> password;
+  List<String> scopes;
 
   @override
-  List<Application> applications;
+  int lifeSpan;
 
   @override
   DateTime createdAt;
@@ -34,32 +34,26 @@ class User extends _User {
   @override
   DateTime updatedAt;
 
-  User(
+  AuthToken(
       {this.id,
-      this.email,
-      this.salt,
-      this.confirmed,
-      this.apiKey,
-      this.password,
-      this.applications,
+      this.userId,
+      this.applicationId,
+      this.state,
+      this.refreshToken,
+      this.scopes,
+      this.lifeSpan,
       this.createdAt,
       this.updatedAt});
 
-  factory User.fromJson(Map data) {
-    return new User(
+  factory AuthToken.fromJson(Map data) {
+    return new AuthToken(
         id: data['id'],
-        email: data['email'],
-        salt: data['salt'],
-        confirmed: data['confirmed'],
-        apiKey: data['api_key'],
-        password: data['password'],
-        applications: data['applications'] is List
-            ? data['applications']
-                .map((x) => x == null
-                    ? null
-                    : (x is Application ? x : new Application.fromJson(x)))
-                .toList()
-            : null,
+        userId: data['user_id'],
+        applicationId: data['application_id'],
+        state: data['state'],
+        refreshToken: data['refresh_token'],
+        scopes: data['scopes'],
+        lifeSpan: data['life_span'],
         createdAt: data['created_at'] is DateTime
             ? data['created_at']
             : (data['created_at'] is String
@@ -74,19 +68,19 @@ class User extends _User {
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'email': email,
-        'salt': salt,
-        'confirmed': confirmed,
-        'api_key': apiKey,
-        'password': password,
-        'applications': applications,
+        'user_id': userId,
+        'application_id': applicationId,
+        'state': state,
+        'refresh_token': refreshToken,
+        'scopes': scopes,
+        'life_span': lifeSpan,
         'created_at': createdAt == null ? null : createdAt.toIso8601String(),
         'updated_at': updatedAt == null ? null : updatedAt.toIso8601String()
       };
 
-  static User parse(Map map) => new User.fromJson(map);
+  static AuthToken parse(Map map) => new AuthToken.fromJson(map);
 
-  User clone() {
-    return new User.fromJson(toJson());
+  AuthToken clone() {
+    return new AuthToken.fromJson(toJson());
   }
 }
