@@ -43,7 +43,7 @@ Future configureServer(Angel app) async {
   String jwtSecret = app.configuration['jwt_secret'];
 
   app.get('/login', (req, res) {
-    res.render('login',
+    return res.render('login',
         {'title': 'Log In', 'user': req.injections[User], 'errors': []});
   });
 
