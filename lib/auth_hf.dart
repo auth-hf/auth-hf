@@ -28,6 +28,7 @@ Future configureServer(Angel app) async {
 
   // DI
   Map mailConfig = app.configuration['mail'];
+  print('Mail config: $mailConfig');
   app.inject('baseUrl', Uri.parse(app.configuration['base_url']));
   app.container.singleton(new Uuid());
   app.container.singleton(

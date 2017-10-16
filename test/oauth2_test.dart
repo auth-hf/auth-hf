@@ -15,12 +15,22 @@ import 'package:uuid/uuid.dart';
 import 'package:test/test.dart';
 
 main() {
+  Logger.root.onRecord.listen((rec) {
+    print(rec);
+    if (rec.error != null) {
+      print(rec.error);
+      print(rec.stackTrace);
+    }
+  });
+
   Application application;
   User user;
   String authCode, authToken;
   Angel app;
   Uri authorizationEndpoint, loginEndpoint, tokenEndpoint;
   var uuid = new Uuid();
+
+  tearDownAll(() => exit(0));
 
   setUp(() async {
     app = new Angel()
@@ -130,6 +140,7 @@ main() {
     });
 
     tearDown(() async {
+      await childApp.close();
       grant.close();
       client.close();
     });

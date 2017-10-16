@@ -103,7 +103,7 @@ Future configureServer(Angel app) async {
         });
       }
 
-      var user = existing.first;
+      var user = existing.first..applications = [];
       user.loginAttempts ??= 0;
 
       if (user.loginAttempts >= 5) {

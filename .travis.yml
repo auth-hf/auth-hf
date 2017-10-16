@@ -1,3 +1,4 @@
 language: dart
+script: bash ./tool/.travis.sh
 services:
   - mongodb
