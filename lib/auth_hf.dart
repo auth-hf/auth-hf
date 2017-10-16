@@ -36,7 +36,7 @@ Future configureServer(Angel app) async {
       ..requiresAuthentication = mailConfig['secure'] == 'true'
       ..secured = mailConfig['secure'] == 'true'
       ..hostName = mailConfig['host']
-      ..port = int.parse(mailConfig['port'])
+      ..port = int.parse(mailConfig['port'] ?? 465)
       ..username = mailConfig['username']
       ..password = mailConfig['password']),
   );
