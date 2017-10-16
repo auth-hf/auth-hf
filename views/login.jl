@@ -8,7 +8,7 @@
                         <span class="icon">
                             <i class="fa fa-user"></i>
                         </span>
-                        <span>Log In</span>
+                        <span>&nbsp;Log In</span>
                     </h1>
                     <h2 class="subtitle">Get connected. Easily.</h2>
 

@@ -5,6 +5,7 @@ import 'package:angel_jael/angel_jael.dart';
 import 'package:angel_static/angel_static.dart';
 import 'package:code_buffer/code_buffer.dart';
 import 'package:file/local.dart';
+import 'package:mailer/mailer.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 import 'package:uuid/uuid.dart';
 import 'src/models/models.dart';
@@ -26,7 +27,22 @@ Future configureServer(Angel app) async {
   }));
 
   // DI
+  Map mailConfig = app.configuration['mail'];
+  app.inject('baseUrl', Uri.parse(app.configuration['base_url']));
   app.container.singleton(new Uuid());
+  app.container.singleton(
+    new SmtpTransport(new SmtpOptions()
+      ..requiresAuthentication = mailConfig['secure'] == 'true'
+      ..secured = mailConfig['secure'] == 'true'
+      ..hostName = mailConfig['host']
+      ..port = int.parse(mailConfig['port'])
+      ..username = mailConfig['username']
+      ..password = mailConfig['password']),
+  );
+
+  if (!app.isProduction) {
+    printDebugInformation();
+  }
 
   // Routing
   var db = new Db(app.configuration['mongo_db']);

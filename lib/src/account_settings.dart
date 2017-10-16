@@ -126,6 +126,16 @@ Future configureServer(Angel app) async {
     res.redirect('/settings');
   });
 
+  router.post('/settings/tfa',
+      (User user, Service userService, RequestContext req, res) async {
+    if (user.alwaysTfa != true) {
+      user.alwaysTfa = true;
+      await userService.modify(user.id, user.toJson());
+    }
+
+    res.redirect('/settings');
+  });
+
   var revokeValidator = new Validator({
     'token*': isNonEmptyString,
   });
@@ -143,7 +153,7 @@ Future configureServer(Angel app) async {
         token = await authTokenService
             .read(validation.data['token'])
             .then(AuthToken.parse);
-      } catch(_) {
+      } catch (_) {
         // Ignore
       }
 

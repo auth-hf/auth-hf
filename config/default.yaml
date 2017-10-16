@@ -1,2 +1,10 @@
+base_url: http://localhost:3000
 mongo_db: mongodb://localhost:27017/auth_hf
 jwt_secret: $JWT_SECRET
+mail:
+  secure: $MAIL_SECURE
+  host: $MAIL_HOST
+  port: $MAIL_PORT
+  from: $MAIL_FROM
+  username: $MAIL_USERNAME
+  password: $MAIL_PASSWORD

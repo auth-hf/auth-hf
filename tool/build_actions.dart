@@ -23,4 +23,13 @@ final List<BuildAction> buildActions = [
       'lib/src/models/user.dart',
     ],
   ),
+  new BuildAction(
+    new PartBuilder([
+      const JsonModelGenerator(),
+    ]),
+    'auth_hf',
+    inputs: const [
+      'lib/src/models/tfa.dart',
+    ],
+  ),
 ];

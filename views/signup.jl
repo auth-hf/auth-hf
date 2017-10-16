@@ -8,7 +8,7 @@
                         <span class="icon">
                             <i class="fa fa-user-plus"></i>
                         </span>
-                        <span>Sign Up</span>
+                        <span>&nbsp;Sign Up</span>
                     </h1>
                     <h2 class="subtitle">Use your HackForums account to securely log in to any site.</h2>
 

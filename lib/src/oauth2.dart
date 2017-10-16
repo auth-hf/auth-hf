@@ -197,7 +197,7 @@ class _OAuth2 extends auth.Server<Application, User> {
       isNonEmptyString,
       isIn(['accept', 'deny'])
     ],
-    'scopes*': [
+    'scopes': [
       isList,
       isNotEmpty,
       everyElement(allOf(
@@ -234,15 +234,7 @@ class _OAuth2 extends auth.Server<Application, User> {
     Map queryParameters =
         new Map<String, String>.from(redirectUri.queryParameters);
 
-    if (grantedScopes.isEmpty) {
-      await authCodeService.remove(codeId);
-      queryParameters.addAll({
-        'error': 'access_denied',
-        'error_description':
-            'The user did not grant access to any of the requested access scopes.',
-        'state': code.state ?? '',
-      });
-    } else if (mode == 'deny') {
+    if (mode == 'deny') {
       await authCodeService.remove(codeId);
       queryParameters.addAll({
         'error': 'access_denied',
@@ -273,17 +265,39 @@ class _OAuth2 extends auth.Server<Application, User> {
     var uuid = req.grab<Uuid>(Uuid);
 
     await authCodeService.remove(authCode);
+    AuthToken token;
 
-    // Create a relevant auth token...
-    var token = new AuthToken(
-      userId: code.userId,
-      applicationId: code.applicationId,
-      refreshToken: uuid.v4(),
-      lifeSpan: const Duration(hours: 24).inMilliseconds,
-      state: code.state,
-      scopes: code.scopes,
-    );
-    token = await authTokenService.create(token.toJson()).then(AuthToken.parse);
+    // Check if an auth token already exists
+    Iterable<AuthToken> existing = await authTokenService.index({
+      'query': {
+        'user_id': code.userId,
+        'application_id': code.applicationId,
+      },
+    }).then((it) => it.map(AuthToken.parse));
+
+    if (existing.isNotEmpty) {
+      token = existing.first;
+      token
+        ..createdAt = new DateTime.now().toUtc()
+        ..state = code.state
+        ..scopes = code.scopes;
+      token = await authTokenService
+          .modify(token.id, token.toJson())
+          .then(AuthToken.parse);
+    } else {
+      // Create a relevant auth token...
+      token = new AuthToken(
+        userId: code.userId,
+        applicationId: code.applicationId,
+        refreshToken: uuid.v4(),
+        lifeSpan: const Duration(hours: 24).inMilliseconds,
+        state: code.state,
+        scopes: code.scopes,
+      );
+      token =
+          await authTokenService.create(token.toJson()).then(AuthToken.parse);
+    }
+
     return new auth.AuthorizationCodeResponse(token.id,
         refreshToken: token.refreshToken);
   }

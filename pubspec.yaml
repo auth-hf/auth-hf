@@ -13,6 +13,7 @@ dependencies:
   angel_oauth2: 
     git: "https://github.com/angel-dart/oauth2.git"
   html: ^0.13.2
+  mailer: ^1.1.0
   pointycastle: ^0.10.0
 dev_dependencies:
   angel_auth_oauth2: ^1.0.0

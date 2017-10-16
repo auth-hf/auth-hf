@@ -8,19 +8,45 @@
                         <span class="icon">
                             <i class="fa fa-cogs"></i>
                         </span>
-                        <span>&nbsp;{{ user.email }}</span>
+                        <span>&nbsp;&nbsp;{{ user.email }}</span>
                     </h1>
                     <h2 class="subtitle">Manage your account settings here.</h2>
                 </div>
             </div>
         </section>
+
+        <section if=user.alwaysTfa != true>
+            <div class="container" style="padding-top: 1em;">
+                <h1 class="title">
+                    <span class="icon">
+                        <i class="fa fa-lock"></i>
+                    </span>
+                    <span>&nbsp;Two-Factor Authorization</span>
+                </h1>
+                <h2 class="subtitle">
+                    Keep your account safe by verifying log-in attempts
+                    with a unique code sent to your e-mail.
+                </h2>
+                <form action="/settings/tfa" method="post">
+                    <button class="button is-dark" type="submit">
+                        <span class="icon">
+                            <i class="fa fa-lock"></i>
+                        </span>
+                        <span>
+                            Click to ALWAYS use 2FA when logging in.
+                        </span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
         <section if=user.apiKey == null>
             <div class="container" style="padding-top: 1em;">
                 <h1 class="title">
                     <span class="icon">
                         <i class="fa fa-key"></i>
                     </span>
-                    <span>Add your API Key</span>
+                    <span>&nbsp;Add your API Key</span>
                 </h1>
                 <div class="notification">
                     Before you can start connecting with applications, you
@@ -89,7 +115,7 @@
                                     <i class="fa fa-trash"></i>
                                 </span>
                                 <span>
-                                    Revoke
+                                    Revoke Access
                                 </span>
                             </button>
                         </div>

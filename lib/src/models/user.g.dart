@@ -20,6 +20,9 @@ class User extends _User {
   bool confirmed;
 
   @override
+  bool alwaysTfa;
+
+  @override
   List<int> apiKey;
 
   @override
@@ -45,6 +48,7 @@ class User extends _User {
       this.email,
       this.salt,
       this.confirmed,
+      this.alwaysTfa,
       this.apiKey,
       this.password,
       this.applications,
@@ -59,6 +63,7 @@ class User extends _User {
         email: data['email'],
         salt: data['salt'],
         confirmed: data['confirmed'],
+        alwaysTfa: data['always_tfa'],
         apiKey: data['api_key'],
         password: data['password'],
         applications: data['applications'] is List
@@ -87,6 +92,7 @@ class User extends _User {
         'email': email,
         'salt': salt,
         'confirmed': confirmed,
+        'always_tfa': alwaysTfa,
         'api_key': apiKey,
         'password': password,
         'applications': applications,

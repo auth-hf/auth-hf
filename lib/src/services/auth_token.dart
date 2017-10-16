@@ -3,7 +3,6 @@ library auth_hf.src.services.auth_token;
 import 'package:angel_framework/angel_framework.dart';
 import 'package:angel_framework/hooks.dart' as hooks;
 import 'package:angel_mongo/angel_mongo.dart';
-import 'package:angel_relations/angel_relations.dart' as relations;
 import 'package:mongo_dart/mongo_dart.dart';
 
 AngelConfigurer configureServer(Db db) {

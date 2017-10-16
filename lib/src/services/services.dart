@@ -3,6 +3,7 @@ import 'package:mongo_dart/mongo_dart.dart';
 import 'application.dart' as applications;
 import 'auth_code.dart' as auth_code;
 import 'auth_token.dart' as auth_token;
+import 'tfa.dart' as tfa;
 import 'user.dart' as user;
 
 AngelConfigurer configureServer(Db db) {
@@ -11,5 +12,6 @@ AngelConfigurer configureServer(Db db) {
     await app.configure(applications.configureServer(db));
     await app.configure(auth_code.configureServer(db));
     await app.configure(auth_token.configureServer(db));
+    await app.configure(tfa.configureServer(db));
   };
 }

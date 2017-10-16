@@ -77,8 +77,7 @@ main() {
   tearDown(() async {
     if (authToken != null)
       await app.service('api/auth_tokens').remove(authToken);
-    if (authCode != null)
-      await app.service('api/auth_codes').remove(authCode);
+    if (authCode != null) await app.service('api/auth_codes').remove(authCode);
     if (application != null)
       await app.service('api/applications').remove(application.id);
     if (user != null) await app.service('api/users').remove(user.id);
@@ -123,7 +122,11 @@ main() {
       var childServer = await childApp.startServer();
       var base = Uri.parse(
           'http://${childServer.address.address}:${childServer.port}/auth/hf/callback');
-      redirect = grant.getAuthorizationUrl(base);
+      redirect = grant.getAuthorizationUrl(base, scopes: const [
+        '/user',
+        '/user/:id',
+        '/inbox',
+      ]);
     });
 
     tearDown(() async {
@@ -170,7 +173,8 @@ main() {
       );
 
       var location = Uri.parse(response.headers['location']);
-      expect(location.queryParameters.keys, allOf(contains('error'), contains('error_description')));
+      expect(location.queryParameters.keys,
+          allOf(contains('error'), contains('error_description')));
       expect(location.queryParameters['error'], 'access_denied');
       authCode = null;
     });

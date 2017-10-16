@@ -8,7 +8,7 @@ part 'user.g.dart';
 @serializable
 class _User extends Model {
   String email, salt;
-  bool confirmed;
+  bool confirmed, alwaysTfa;
   List<int> apiKey, password;
   List<Application> applications;
   int loginAttempts, firstLogin;
