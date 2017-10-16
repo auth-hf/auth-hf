@@ -20,7 +20,7 @@ Future configureServer(Angel app) async {
   });
 
   var client = new http.Client();
-  var rgxBasic = new RegExp(r'[Bb]earer ([^$]+)$');
+  var rgxBearer = new RegExp(r'[Bb]earer ([^$]+)$');
   var leadingSlashes = new RegExp(r'^/+');
   var callValidator = new Validator({
     'endpoint*': isNonEmptyString,
@@ -32,10 +32,10 @@ Future configureServer(Angel app) async {
       Service userService,
       RequestContext req,
       ResponseContext res) async {
-    var m = rgxBasic.firstMatch(authHeader);
+    var m = rgxBearer.firstMatch(authHeader);
     if (m == null)
       throw new AngelHttpException.badRequest(
-          message: 'Malformed Authorizaton header.');
+          message: 'Malformed Authorization header.');
 
     var tokenId = m[1];
     AuthToken token;
@@ -52,7 +52,7 @@ Future configureServer(Angel app) async {
     var validation = callValidator.check(await req.lazyBody());
 
     var expirationDate =
-        token.createdAt.add(new Duration(milliseconds: token.lifeSpan));
+        token.createdAt.add(new Duration(seconds: token.lifeSpan));
     var now = new DateTime.now().toUtc();
 
     if (now.isAfter(expirationDate))
@@ -112,7 +112,7 @@ Future configureServer(Angel app) async {
   });
 }
 
-class _OAuth2 extends auth.Server<Application, User> {
+class _OAuth2 extends auth.AuthorizationServer<Application, User> {
   final Angel app;
 
   _OAuth2(this.app);
@@ -149,13 +149,7 @@ class _OAuth2 extends auth.Server<Application, User> {
   }
 
   @override
-  Future<String> authCodeGrant(Application client, String redirectUri,
-      User user, Iterable<String> scopes, String state) {
-    throw new UnsupportedError('Nope');
-  }
-
-  @override
-  Future authorize(
+  Future requestAuthorizationCode(
       Application client,
       String redirectUri,
       Iterable<String> scopes,
@@ -210,7 +204,6 @@ class _OAuth2 extends auth.Server<Application, User> {
     ]
   });
 
-  @override
   Future handleFormSubmission(RequestContext req, ResponseContext res) async {
     print(await req.lazyBody());
     var validation = formValidator.check(await req.lazyBody());
@@ -256,7 +249,7 @@ class _OAuth2 extends auth.Server<Application, User> {
   }
 
   @override
-  Future<auth.AuthorizationCodeResponse> exchangeAuthCodeForAccessToken(
+  Future<auth.AuthorizationTokenResponse> exchangeAuthorizationCodeForToken(
       String authCode,
       String redirectUri,
       RequestContext req,
@@ -290,7 +283,7 @@ class _OAuth2 extends auth.Server<Application, User> {
         userId: code.userId,
         applicationId: code.applicationId,
         refreshToken: uuid.v4(),
-        lifeSpan: const Duration(hours: 24).inMilliseconds,
+        lifeSpan: const Duration(hours: 24).inSeconds,
         state: code.state,
         scopes: code.scopes,
       );
@@ -298,7 +291,50 @@ class _OAuth2 extends auth.Server<Application, User> {
           await authTokenService.create(token.toJson()).then(AuthToken.parse);
     }
 
-    return new auth.AuthorizationCodeResponse(token.id,
-        refreshToken: token.refreshToken);
+    return new auth.AuthorizationTokenResponse(
+      token.id,
+      refreshToken: token.refreshToken,
+      expiresIn: token.lifeSpan,
+    );
+  }
+
+  @override
+  Future<auth.AuthorizationTokenResponse> refreshAuthorizationToken(
+      Application client,
+      String refreshToken,
+      Iterable<String> scopes,
+      RequestContext req,
+      ResponseContext res) async {
+    Iterable<AuthToken> existing = await authTokenService.index({
+      'query': {
+        'refresh_token': refreshToken,
+      },
+    }).then((it) => it.map(AuthToken.parse));
+
+    if (existing.isEmpty) {
+      throw new auth.AuthorizationException(
+        new auth.ErrorResponse(
+          auth.ErrorResponse.accessDenied,
+          'Invalid refresh token.',
+          req.body['state'] ?? '',
+        ),
+        statusCode: 401,
+      );
+    }
+
+    var uuid = req.grab<Uuid>(Uuid);
+    var token = existing.first
+      ..application = null
+      ..createdAt = new DateTime.now().toUtc()
+      ..refreshToken = uuid.v4();
+    token = await authTokenService
+        .modify(token.id, token.toJson())
+        .then(AuthToken.parse);
+
+    return new auth.AuthorizationTokenResponse(
+      token.id,
+      refreshToken: token.refreshToken,
+      expiresIn: token.lifeSpan,
+    );
   }
 }

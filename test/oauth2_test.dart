@@ -85,8 +85,15 @@ main() {
   });
 
   tearDown(() async {
-    if (authToken != null)
-      await app.service('api/auth_tokens').remove(authToken);
+    if (authToken != null) {
+      try {
+        await app.service('api/auth_tokens').remove(authToken);
+      } catch(e, st) {
+        print('Couldn\'t delete auth token');
+        print(e);
+        print(st);
+      }
+    }
     if (authCode != null) await app.service('api/auth_codes').remove(authCode);
     if (application != null)
       await app.service('api/applications').remove(application.id);
@@ -204,6 +211,27 @@ main() {
       var authed = await grant.handleAuthorizationCode(authCode);
       authCode = null;
       print(authToken = authed.credentials.accessToken);
+      print(authed.credentials.toJson());
+
+      /// Refresh
+      await authed.refreshCredentials();
+    });
+
+    test('refresh credentials', () async {
+      var cookie = await getAuthenticatedCookie();
+      var response =
+          await client.get(redirect, headers: {'cookie': 'DARTSESSID=$cookie'});
+      print('Response: ${response.body}');
+
+      var doc = html.parse(response.body);
+      var $input = doc.querySelector('input[name="confirm"]');
+
+      authCode = $input.attributes['value'];
+
+      var authed = await grant.handleAuthorizationCode(authCode);
+      authCode = null;
+      print(authed.credentials.toJson());
+      await authed.refreshCredentials();
     });
   });
 }
