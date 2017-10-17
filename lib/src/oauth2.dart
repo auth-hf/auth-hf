@@ -277,6 +277,15 @@ class _OAuth2 extends auth.AuthorizationServer<Application, User> {
     var code = await authCodeService.read(authCode).then(AuthCode.parse);
     var uuid = req.grab<Uuid>(Uuid);
 
+    if (req.body['redirect_uri'] != code.redirectUri) {
+      throw new auth.AuthorizationException(
+        new auth.ErrorResponse(
+            auth.ErrorResponse.invalidRequest,
+            'The "redirect_uri" provided does not match the original.',
+            code.state ?? ''),
+      );
+    }
+
     await authCodeService.remove(authCode);
     AuthToken token;
 
