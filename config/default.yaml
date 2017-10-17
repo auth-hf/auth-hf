@@ -1,5 +1,5 @@
 base_url: http://localhost:3000
-mongo_db: mongodb://localhost:27017/auth_hf
+mongo_db: $MONGO_DB
 jwt_secret: $JWT_SECRET
 mail:
   secure: $MAIL_SECURE
