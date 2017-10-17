@@ -65,3 +65,4 @@ fabric.properties
 
 .env
 web/bower_components
+*.pem
