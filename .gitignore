@@ -66,3 +66,5 @@ fabric.properties
 .env
 web/bower_components
 *.pem
+.idea/deployment.xml
+.idea/webServers.xml

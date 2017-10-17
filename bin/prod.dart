@@ -8,7 +8,7 @@ import 'package:pool/pool.dart';
 import 'task.dart' as task;
 
 const String host = '127.0.0.1';
-const int port = 80;
+const int port = 3000;
 
 main() async {
   var onDie = new ReceivePort()
@@ -48,13 +48,7 @@ void startServer(List args) {
     int id = args[0];
     SendPort sessionSync = args[1];
 
-    var rootUri = Platform.script.resolve('..');
-
-    var ctx = new SecurityContext()
-      ..useCertificateChain(rootUri.resolve('keys/server.pem').toString())
-      ..usePrivateKey(rootUri.resolve('keys/key.pem').toString());
-    var app = new Angel.custom(startSharedSecure(ctx))
-      ..lazyParseBodies = true;
+    var app = new Angel.custom(startShared)..lazyParseBodies = true;
 
     String getSessionId(RequestContext req, ResponseContext res) {
       var cookie = req.cookies
@@ -80,8 +74,8 @@ void startServer(List args) {
       });
 
       sessionSync.send([getSessionId(req, res), recv.sendPort]);
-      return c.future.timeout(
-          const Duration(seconds: 10), onTimeout: () => true);
+      return c.future
+          .timeout(const Duration(seconds: 10), onTimeout: () => true);
     });
 
     return app.configure(auth_hf.configureServer).then((_) async {
@@ -97,16 +91,17 @@ void startServer(List args) {
         ..onRecord.listen((rec) {
           if (rec.error != null) {
             var sink =
-            new File('server_log.txt').openWrite(mode: FileMode.APPEND);
+                new File('server_log.txt').openWrite(mode: FileMode.APPEND);
             sink
-              ..writeln(rec)..writeln(rec.error)..writeln(rec.stackTrace)
+              ..writeln(rec)
+              ..writeln(rec.error)
+              ..writeln(rec.stackTrace)
               ..close();
           }
         });
 
       var server = await app.startServer(host, port);
-      print(
-          'Server #$id istening at http://${server.address.address}:${server
+      print('Server #$id istening at http://${server.address.address}:${server
               .port}');
     });
   }).catchError((e, st) {
