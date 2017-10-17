@@ -6,7 +6,7 @@ final AccessScope profile = new AccessScope(
 
 final AccessScope userInfo = new AccessScope(
   '/user/:id',
-  'View information about any user',
+  'View any user\'s profile',
   new RegExp(r'user/([0-9]+)'),
 );
 
@@ -59,7 +59,7 @@ final AccessScope inbox = new AccessScope(
 );
 
 final AccessScope groupInfo = new AccessScope(
-  '/group/:info',
+  '/group/:id',
   'View information about usergroups',
   new RegExp(r'group/([0-9]+)'),
 );
