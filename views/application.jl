@@ -18,6 +18,44 @@
             <form action="/applications/" + app.id method="post">
                 <input name="csrf_token" type="hidden" value=csrf_token>
 
+                <table class="table table is-hoverable">
+                    <thead>
+                        <tr>
+                            <th colspan="2">OAuth2 Credentials</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <b>Public Key</b>
+                            </td>
+                            <td>
+                                {{ app.publicKey }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <b>Secret Key</b>
+                            </td>
+                            <td>
+                                <div class="button is-dark" id="showButton">
+                                    <span class="icon">
+                                        <i class="fa fa-eye"></i>
+                                    </span>
+                                    <span>
+                                        Show
+                                    </span>
+                                </div>
+                                <span id="secretKey" style="display: none;">
+                                    {{ app.secretKey }}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!--<input name="csrf_token" type="hidden" value=csrf_token>-->
+
                 <div class="field">
                     <p class="control has-icons-left" style="width: 100%;">
                         <span class="select" style="width: 100%;">
@@ -68,5 +106,9 @@
                 </button>
             </form>
         </section>
+    </block>
+
+    <block name="js">
+        <script src="/js/application.js"></script>
     </block>
 </extend>

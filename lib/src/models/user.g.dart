@@ -29,6 +29,9 @@ class User extends _User {
   List<int> password;
 
   @override
+  List<int> confirmationCode;
+
+  @override
   List<Application> applications;
 
   @override
@@ -51,6 +54,7 @@ class User extends _User {
       this.alwaysTfa,
       this.apiKey,
       this.password,
+      this.confirmationCode,
       this.applications,
       this.loginAttempts,
       this.firstLogin,
@@ -66,6 +70,7 @@ class User extends _User {
         alwaysTfa: data['always_tfa'],
         apiKey: data['api_key'],
         password: data['password'],
+        confirmationCode: data['confirmation_code'],
         applications: data['applications'] is List
             ? data['applications']
                 .map((x) => x == null
@@ -95,6 +100,7 @@ class User extends _User {
         'always_tfa': alwaysTfa,
         'api_key': apiKey,
         'password': password,
+        'confirmation_code': confirmationCode,
         'applications': applications,
         'login_attempts': loginAttempts,
         'first_login': firstLogin,

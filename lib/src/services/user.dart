@@ -11,6 +11,8 @@ AngelConfigurer configureServer(Db db) {
         app.use('/api/users', new MongoService(db.collection('users')));
     app.inject('userService', service);
 
+    // TODO: On delete, cascade trusted device + 2fa attempts
+
     service.afterAll(
       relations.hasMany(
         'api/applications',

@@ -9,7 +9,7 @@ part 'user.g.dart';
 class _User extends Model {
   String email, salt;
   bool confirmed, alwaysTfa;
-  List<int> apiKey, password;
+  List<int> apiKey, password, confirmationCode;
   List<Application> applications;
   int loginAttempts, firstLogin;
 }

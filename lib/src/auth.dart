@@ -39,6 +39,16 @@ Future<bool> filter(
       ],
     });
     return false;
+  } else {
+    var user = req.injections[User] as User;
+
+    if (!user.confirmed) {
+      await res.render('confirm', {
+        'title': 'Confirm your Account',
+        'user': user,
+      });
+      return false;
+    }
   }
 
   return true;
@@ -57,6 +67,36 @@ Future<LoginHistory> resolveOrCreateLoginHistory(String ip, Angel app) async {
   return await service
       .create(new LoginHistory(ip: ip, successes: 0, failures: 0).toJson())
       .then(LoginHistory.parse);
+}
+
+Future sendConfirmationEmail(String confirmationCode, String to, String from,
+    Uri baseUrl, SmtpTransport transport) {
+  var envelope = new Envelope()
+    ..from = from
+    ..fromName = 'Auth HF'
+    ..subject = 'Confirm your Auth HF account'
+    ..recipients.add(to);
+
+  var confirmationUrl = baseUrl.resolve('login');
+
+  envelope.html = '''
+  <h1>${envelope.subject}</h1>
+  <p>
+    You received this e-mail because your Auth HF is yet unconfirmed.
+    <br>
+    The following is your confirmation code: <b>$confirmationCode</b>.
+    <br>
+    Log in <a href="$confirmationUrl">here</a> to receive a prompt to confirm your account.
+    <br>
+    Can't see the link? $confirmationUrl
+    <br>
+    If you think you have received this e-mail in error, simply ignore it.
+    The account will automatically be wiped within 24 hours.
+  </p>
+'''
+      .trim();
+
+  return transport.send(envelope);
 }
 
 Future configureServer(Angel app) async {
@@ -114,7 +154,8 @@ Future configureServer(Angel app) async {
         var loginHistory = await resolveOrCreateLoginHistory(req.ip, app);
         loginHistory.failures ??= 0;
         loginHistory.failures++;
-        await loginHistoryService.modify(loginHistory.id, loginHistory.toJson());
+        await loginHistoryService.modify(
+            loginHistory.id, loginHistory.toJson());
 
         return await res.render('login', {
           'title': 'Login Error',
@@ -141,12 +182,6 @@ Future configureServer(Angel app) async {
             ..loginAttempts = 0;
         } else {
           user.loginAttempts++;
-
-          if (user.loginAttempts > 5) {
-            // If a user continues to try to log in *after* the account is locked,
-            // they are probably a bot/brute-forcer.
-            // TODO: Add request IP to blacklist
-          }
         }
 
         await userService.modify(user.id, user.toJson());
@@ -155,7 +190,8 @@ Future configureServer(Angel app) async {
           var loginHistory = await resolveOrCreateLoginHistory(req.ip, app);
           loginHistory.failures ??= 0;
           loginHistory.failures++;
-          await loginHistoryService.modify(loginHistory.id, loginHistory.toJson());
+          await loginHistoryService.modify(
+              loginHistory.id, loginHistory.toJson());
 
           print('Blocked! ${user.loginAttempts} attempts');
           res.statusCode = 403;
@@ -224,7 +260,8 @@ Future configureServer(Angel app) async {
         var loginHistory = await resolveOrCreateLoginHistory(req.ip, app);
         loginHistory.failures ??= 0;
         loginHistory.failures++;
-        await loginHistoryService.modify(loginHistory.id, loginHistory.toJson());
+        await loginHistoryService.modify(
+            loginHistory.id, loginHistory.toJson());
 
         return await res.render('login', {
           'title': 'Login Error',
@@ -257,7 +294,6 @@ Future configureServer(Angel app) async {
       loginHistory.successes ??= 0;
       loginHistory.successes++;
       await loginHistoryService.modify(loginHistory.id, loginHistory.toJson());
-
 
       if (!suspicious && user.alwaysTfa != true) {
         req.session['user_id'] = user.id;
@@ -347,6 +383,8 @@ Future configureServer(Angel app) async {
     Service trustedDeviceService,
     Service userService,
     Uuid uuid,
+    Uri baseUrl,
+    SmtpTransport transport,
     RequestContext req,
     ResponseContext res,
   ) async {
@@ -385,11 +423,13 @@ Future configureServer(Angel app) async {
       }
 
       var salt = uuid.v4();
+      var code = uuid.v4();
       var user = await userService
           .create(new User(
                   email: email,
                   salt: salt,
                   password: pepperedHash(password, salt, jwtSecret),
+                  confirmationCode: pepperedHash(code, salt, jwtSecret),
                   confirmed: false)
               .toJson())
           .then(User.parse);
@@ -402,7 +442,9 @@ Future configureServer(Angel app) async {
                   'None, but this is the original registration point')
           .toJson());
 
-      // TODO: Confirm e-mail
+      await sendConfirmationEmail(code, user.email,
+              app.configuration['mail']['from'], baseUrl, transport)
+          .timeout(const Duration(minutes: 1));
 
       res.redirect('/login?ref=signup');
     }
@@ -523,4 +565,64 @@ Future configureServer(Angel app) async {
       var redirect = req.session.remove('auth_redirect');
       res.redirect(redirect ?? '/settings');
     });
+
+  var confirmValidator = new Validator({
+    'mode*': [
+      isString,
+      isIn(['reset', 'confirm']),
+    ],
+    'code': isNonEmptyString,
+  });
+
+  app.post('/confirm', (Uri baseUrl,
+      Uuid uuid,
+      SmtpTransport transport,
+      Service loginHistoryService,
+      Service userService,
+      RequestContext req,
+      ResponseContext res) async {
+    if (!req.injections.containsKey(User)) return res.redirect('/login');
+
+    var user = req.injections[User] as User;
+    user.applications = null; // No headaches
+
+    if (user.confirmed == true) return res.redirect('/settings');
+
+    var validation = confirmValidator.check(await req.lazyBody());
+
+    if (validation.errors.isNotEmpty) {
+      return res.redirect('/login');
+    }
+
+    String mode = validation.data['mode'];
+    var target = req.headers.value('referer') ?? '/settings';
+
+    if (mode == 'reset') {
+      var code = uuid.v4();
+      user.confirmationCode = pepperedHash(code, user.salt, jwtSecret);
+      await userService.modify(user.id, user.toJson());
+      await sendConfirmationEmail(code, user.email,
+              app.configuration['mail']['from'], baseUrl, transport)
+          .timeout(const Duration(minutes: 1));
+    } else if (mode == 'confirm') {
+      if (!validation.data.containsKey('code')) return res.redirect('/login');
+
+      String code = validation.data['code'];
+      var hash = pepperedHash(code, user.salt, jwtSecret);
+
+      if (!(const ListEquality().equals(hash, user.confirmationCode))) {
+        var history = await resolveOrCreateLoginHistory(req.ip, app);
+        history.failures ??= 0;
+        history.failures++;
+        await loginHistoryService.modify(history.id, history.toJson());
+      } else {
+        user
+          ..confirmationCode = null
+          ..confirmed = true;
+        await userService.modify(user.id, user.toJson());
+      }
+    }
+
+    res.redirect(target);
+  });
 }
