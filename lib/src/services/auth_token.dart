@@ -11,8 +11,6 @@ AngelConfigurer configureServer(Db db) {
         '/api/auth_tokens', new MongoService(db.collection('auth_tokens')));
     app.inject('authTokenService', service);
 
-    service.beforeCreated.listen(hooks.addCreatedAt(key: 'created_at'));
-
     service.afterAll(hooks.transform((Map token) async {
       Map application;
 

@@ -44,6 +44,21 @@ Future<bool> filter(
   return true;
 }
 
+Future<LoginHistory> resolveOrCreateLoginHistory(String ip, Angel app) async {
+  var service = app.service('api/login_histories');
+  var histories = await service.index({
+    'query': {
+      'ip': ip,
+    },
+  });
+
+  if (histories.isNotEmpty) return LoginHistory.parse(histories.first);
+
+  return await service
+      .create(new LoginHistory(ip: ip, successes: 0, failures: 0).toJson())
+      .then(LoginHistory.parse);
+}
+
 Future configureServer(Angel app) async {
   String jwtSecret = app.configuration['jwt_secret'];
 
@@ -70,6 +85,8 @@ Future configureServer(Angel app) async {
     @Query('ref', required: false) String ref,
     Service tfaService,
     Service authTokenService,
+    Service loginHistoryService,
+    Service trustedDeviceService,
     Service userService,
     Uuid uuid,
     SmtpTransport transport,
@@ -94,6 +111,11 @@ Future configureServer(Angel app) async {
       }).then((it) => it.map(User.parse));
 
       if (existing.isEmpty) {
+        var loginHistory = await resolveOrCreateLoginHistory(req.ip, app);
+        loginHistory.failures ??= 0;
+        loginHistory.failures++;
+        await loginHistoryService.modify(loginHistory.id, loginHistory.toJson());
+
         return await res.render('login', {
           'title': 'Login Error',
           'user': req.injections[User],
@@ -130,6 +152,11 @@ Future configureServer(Angel app) async {
         await userService.modify(user.id, user.toJson());
 
         if (!unlocked) {
+          var loginHistory = await resolveOrCreateLoginHistory(req.ip, app);
+          loginHistory.failures ??= 0;
+          loginHistory.failures++;
+          await loginHistoryService.modify(loginHistory.id, loginHistory.toJson());
+
           print('Blocked! ${user.loginAttempts} attempts');
           res.statusCode = 403;
           return await res.render('login', {
@@ -194,6 +221,11 @@ Future configureServer(Angel app) async {
 
         await userService.modify(user.id, user.toJson());
 
+        var loginHistory = await resolveOrCreateLoginHistory(req.ip, app);
+        loginHistory.failures ??= 0;
+        loginHistory.failures++;
+        await loginHistoryService.modify(loginHistory.id, loginHistory.toJson());
+
         return await res.render('login', {
           'title': 'Login Error',
           'user': null,
@@ -203,13 +235,29 @@ Future configureServer(Angel app) async {
         });
       }
 
-      // TODO: Check for untrusted device
       bool suspicious = user.loginAttempts >= 3;
+
+      if (!suspicious) {
+        Iterable<TrustedDevice> trustedDevices =
+            await trustedDeviceService.index({
+          'query': {
+            'user_id': user.id,
+          },
+        }).then((it) => it.map(TrustedDevice.parse));
+
+        suspicious = !trustedDevices.any((d) => d.ip == req.ip);
+      }
 
       user
         ..loginAttempts = 0
         ..firstLogin = null;
       await userService.modify(user.id, user.toJson());
+
+      var loginHistory = await resolveOrCreateLoginHistory(req.ip, app);
+      loginHistory.successes ??= 0;
+      loginHistory.successes++;
+      await loginHistoryService.modify(loginHistory.id, loginHistory.toJson());
+
 
       if (!suspicious && user.alwaysTfa != true) {
         req.session['user_id'] = user.id;
@@ -228,7 +276,6 @@ Future configureServer(Angel app) async {
           ..recipients.add(user.email);
         print(transport.options.hostName);
 
-        // TODO: Send different subject+HTML if untrusted device
         var url = baseUrl.resolve('2fa/${tfa.id}').toString();
         print(url);
 
@@ -297,6 +344,7 @@ Future configureServer(Angel app) async {
   });
 
   router.post('/signup', (
+    Service trustedDeviceService,
     Service userService,
     Uuid uuid,
     RequestContext req,
@@ -337,12 +385,25 @@ Future configureServer(Angel app) async {
       }
 
       var salt = uuid.v4();
-      await userService.create(new User(
-              email: email,
-              salt: salt,
-              password: pepperedHash(password, salt, jwtSecret),
-              confirmed: false)
+      var user = await userService
+          .create(new User(
+                  email: email,
+                  salt: salt,
+                  password: pepperedHash(password, salt, jwtSecret),
+                  confirmed: false)
+              .toJson())
+          .then(User.parse);
+
+      // Trust this device
+      await trustedDeviceService.create(new TrustedDevice(
+              userId: user.id,
+              ip: req.ip,
+              userAgent: req.headers.value('user-agent') ??
+                  'None, but this is the original registration point')
           .toJson());
+
+      // TODO: Confirm e-mail
+
       res.redirect('/login?ref=signup');
     }
   });
@@ -382,8 +443,13 @@ Future configureServer(Angel app) async {
         'tfa': tfa,
       });
     })
-    ..post('/2fa/:id', (Tfa tfa, Service tfaService, Service userService,
-        RequestContext req, ResponseContext res) async {
+    ..post('/2fa/:id', (Tfa tfa,
+        SmtpTransport transport,
+        Service trustedDeviceService,
+        Service tfaService,
+        Service userService,
+        RequestContext req,
+        ResponseContext res) async {
       var validation = tfaValidator.check(await req.lazyBody());
 
       if (validation.errors.isNotEmpty) {
@@ -403,6 +469,54 @@ Future configureServer(Angel app) async {
             'Invalid 2FA code. You must log in again.',
           ],
         });
+      }
+
+      // Trust this device
+      Iterable<TrustedDevice> trustedDevices =
+          await trustedDeviceService.index({
+        'query': {
+          'user_id': tfa.user.id,
+        },
+      }).then((it) => it.map(TrustedDevice.parse));
+
+      if (!trustedDevices.any((d) => d.ip == req.ip)) {
+        var device = new TrustedDevice(
+          userId: tfa.user.id,
+          ip: req.ip,
+          userAgent: req.headers.value('user-agent') ??
+              'None provided; this may be a bot.',
+        );
+        await trustedDeviceService.create(device.toJson());
+
+        var envelope = new Envelope()
+          ..from = app.configuration['mail']['from']
+          ..fromName = 'Auth HF Sentinel'
+          ..subject =
+              'You recently signed in to Auth HF from an unrecognized device.'
+          ..recipients.add(tfa.user.email);
+
+        envelope.html = '''
+        <h1>${envelope.subject}</h1>
+        <p>
+          You received this e-mail because someone successfully signed in
+          to your Auth HF account from a location you have not signed in from before.
+          <br><br>
+          The following device is now registered as trusted for your account:
+          <ul>
+            <li><b>IP Address: </b>${device.ip}</li>
+            <li><b>User Agent: </b>${device.userAgent}</li>
+          </ul>
+          <br><br>
+          If you didn't attempt this login, then send a response to this e-mail
+          immediately.
+          <br><br>
+          To immediately lock your account for an hour, attempt to log into your
+          account 5 times consecutively, using invalid passwords.
+        </p>
+        '''
+            .trim();
+
+        await transport.send(envelope).timeout(const Duration(minutes: 1));
       }
 
       req.session['user_id'] = tfa.user.id;

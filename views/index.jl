@@ -104,7 +104,7 @@
                 <h2 class="subtitle">Auth HF is 100% open-sourced, and costs $0.00 to use.</h2>
                 <p>
                     To guarantee transparency, the source code of Auth HF is
-                    <a href="https://github.com/auth-hf/auth-hf">publicly viewable</a>.
+                    <a href="https://github.com/auth-hf/auth-hf" target="_blank">publicly viewable</a>.
                     All revenue is sourced from advertisements.
                 </p>
             </div>

@@ -12,13 +12,9 @@ AngelConfigurer configureServer(Db db) {
     app.inject('tfaService', service);
 
     service.beforeAll(hooks.disable());
-    service.beforeCreated.listen(hooks.chainListeners([
-      hooks.addCreatedAt(key: 'created_at'),
-      hooks.transform(
-        (Map m) =>
-            m..['life_span'] = const Duration(minutes: 10).inMilliseconds,
-      )
-    ]));
+    service.beforeCreated.listen(hooks.transform(
+      (Map m) => m..['life_span'] = const Duration(minutes: 10).inMilliseconds,
+    ));
     service.afterAll(hooks.transform((Map token) async {
       Map user;
 

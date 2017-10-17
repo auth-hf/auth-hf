@@ -1,32 +1,23 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of auth_hf.src.models.application;
+part of auth_hf.src.models.login_history;
 
 // **************************************************************************
 // Generator: JsonModelGenerator
 // **************************************************************************
 
-class Application extends _Application {
+class LoginHistory extends _LoginHistory {
   @override
   String id;
 
   @override
-  String userId;
+  String ip;
 
   @override
-  String name;
+  int successes;
 
   @override
-  String description;
-
-  @override
-  String publicKey;
-
-  @override
-  String secretKey;
-
-  @override
-  String redirectUris;
+  int failures;
 
   @override
   DateTime createdAt;
@@ -34,26 +25,20 @@ class Application extends _Application {
   @override
   DateTime updatedAt;
 
-  Application(
+  LoginHistory(
       {this.id,
-      this.userId,
-      this.name,
-      this.description,
-      this.publicKey,
-      this.secretKey,
-      this.redirectUris,
+      this.ip,
+      this.successes,
+      this.failures,
       this.createdAt,
       this.updatedAt});
 
-  factory Application.fromJson(Map data) {
-    return new Application(
+  factory LoginHistory.fromJson(Map data) {
+    return new LoginHistory(
         id: data['id'],
-        userId: data['user_id'],
-        name: data['name'],
-        description: data['description'],
-        publicKey: data['public_key'],
-        secretKey: data['secret_key'],
-        redirectUris: data['redirect_uris'],
+        ip: data['ip'],
+        successes: data['successes'],
+        failures: data['failures'],
         createdAt: data['created_at'] is DateTime
             ? data['created_at']
             : (data['created_at'] is String
@@ -68,19 +53,16 @@ class Application extends _Application {
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'user_id': userId,
-        'name': name,
-        'description': description,
-        'public_key': publicKey,
-        'secret_key': secretKey,
-        'redirect_uris': redirectUris,
+        'ip': ip,
+        'successes': successes,
+        'failures': failures,
         'created_at': createdAt == null ? null : createdAt.toIso8601String(),
         'updated_at': updatedAt == null ? null : updatedAt.toIso8601String()
       };
 
-  static Application parse(Map map) => new Application.fromJson(map);
+  static LoginHistory parse(Map map) => new LoginHistory.fromJson(map);
 
-  Application clone() {
-    return new Application.fromJson(toJson());
+  LoginHistory clone() {
+    return new LoginHistory.fromJson(toJson());
   }
 }

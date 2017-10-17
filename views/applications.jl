@@ -8,7 +8,7 @@
                         <span class="icon">
                             <i class="fa fa-laptop"></i>
                         </span>
-                        <span>Applications ({{ user.applications.length }})</span>
+                        <span>&nbsp;&nbsp;Applications ({{ user.applications.length }})</span>
                     </h1>
                     <h2 class="subtitle">
                         Securely authenticate your users using the HackForums.net API.
@@ -49,6 +49,16 @@
                                     </p>
                                 </div>
                             </div>
+                            <div class="media-right">
+                                <a class="button is-dark" href="/applications/" + item.id>
+                                    <span class="icon">
+                                        <i class="fa fa-edit"></i>
+                                    </span>
+                                        <span>
+                                        Edit
+                                    </span>
+                                </a>
+                            </div>
                         </article>
                     </div>
                 </div>
@@ -69,6 +79,7 @@
 
                     <form action="/applications" id="newApplicationForm" method="post">
                         <div class="field">
+                            <label class="label">Name</label>
                             <div class="control has-icons-left has-icons-right">
                                 <input name="name" class="input" placeholder="Application Name" required>
                                 <span class="icon is-small is-left">
@@ -79,7 +90,17 @@
 
                         <div class="field">
                             <div class="control">
-                                <textarea name="description" class="textarea" placeholder="Description..." rows="5" required></textarea>
+                                <label class="label">Description</label>
+                                <textarea name="description" class="textarea" placeholder="Briefly describe your application" rows="5" required></textarea>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <div class="control">
+                                <label class="label">
+                                    Valid Redirect URI's
+                                </label>
+                                <textarea name="redirect_uris" class="textarea" placeholder="Separate with a comma (,)" rows="5" required></textarea>
                             </div>
                         </div>
                     </form>

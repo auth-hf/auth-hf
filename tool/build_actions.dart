@@ -20,6 +20,8 @@ final List<BuildAction> buildActions = [
     inputs: const [
       'lib/src/models/auth_code.dart',
       'lib/src/models/auth_token.dart',
+      'lib/src/models/login_history.dart',
+      'lib/src/models/trusted_device.dart',
       'lib/src/models/user.dart',
     ],
   ),

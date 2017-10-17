@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:angel_configuration/angel_configuration.dart';
 import 'package:angel_framework/angel_framework.dart';
 import 'package:angel_jael/angel_jael.dart';
+import 'package:angel_oauth2/angel_oauth2.dart';
 import 'package:angel_static/angel_static.dart';
 import 'package:code_buffer/code_buffer.dart';
 import 'package:file/local.dart';
@@ -28,7 +29,6 @@ Future configureServer(Angel app) async {
 
   // DI
   Map mailConfig = app.configuration['mail'];
-  print('Mail config: $mailConfig');
   app.inject('baseUrl', Uri.parse(app.configuration['base_url']));
   app.container.singleton(new Uuid());
   app.container.singleton(
@@ -41,13 +41,29 @@ Future configureServer(Angel app) async {
       ..password = mailConfig['password']),
   );
 
-  if (!app.isProduction) {
-    printDebugInformation();
-  }
-
   // Routing
   var db = new Db(app.configuration['mongo_db']);
   await db.open();
+
+  // Blacklist potential attackers
+  app.use((RequestContext req, ResponseContext res) async {
+    var loginHistory = await auth.resolveOrCreateLoginHistory(req.ip, app);
+
+    if (!loginHistory.isAttacker ||
+        req.path.endsWith('.js') ||
+        req.path.endsWith('.woff2') ||
+        req.path.endsWith('.woff') ||
+        req.path.endsWith('.ttf') ||
+        req.path.endsWith('.svg') ||
+        req.path.endsWith('.map') ||
+        req.path.endsWith('.css')) return true;
+
+    // B-B-B-B-B-B-B-BAN HAMMER
+    throw new AngelHttpException.forbidden(
+      message:
+          'You have been identified as a potential abuser, and have been banned from this service.',
+    );
+  });
 
   app.use(auth.parse);
 
@@ -83,13 +99,27 @@ Future configureServer(Angel app) async {
   var oldHandler = app.errorHandler;
 
   app.errorHandler = (e, req, res) {
+    if (e.statusCode == 500) {
+      print(e.error ?? e);
+      print(e.stackTrace);
+    }
+
+    if (e is AuthorizationException)
+      return e.toJson();
+
     if (req.path.endsWith('.js') || req.path.endsWith('.css'))
       return oldHandler(e, req, res);
+
+    var errorMessage = e.error?.toString() ?? e.message ?? e.toString();
+
+    if (app.isProduction)
+      errorMessage = 'Hang in there. We\'re working on it.';
+
     return res.render('error', {
       'title': 'Error ${e.statusCode}',
       'user': req.injections[User],
       'status_code': e.statusCode,
-      'error': e.message ?? e.toString(),
+      'error': errorMessage,
     });
   };
 }

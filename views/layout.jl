@@ -13,7 +13,18 @@
 </head>
 <body>
     <block name="body"></block>
+    <div class="level is-mobile">
+        <div class="level-item">
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-2116133816688639"
+                 data-ad-slot="2103896424"
+                 data-ad-format="auto"></ins>
+        </div>
+    </div>
     <script src="/bower_components/jquery/dist/jquery.min.js"></script>
+    <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-68026607-4"></script>
     <script src="/js/site.js"></script>
     <block name="js"></block>
 </body>

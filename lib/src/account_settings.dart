@@ -69,6 +69,7 @@ Future configureServer(Angel app) async {
 
   var applicationValidator = new Validator({
     'name*,description*': isNonEmptyString,
+    'redirect_uris': isString,
   });
 
   router.post('/applications', (User user, Service applicationService,
@@ -82,6 +83,7 @@ Future configureServer(Angel app) async {
               userId: user.id,
               name: name,
               description: description,
+              redirectUris: validation.data['redirect_uris'] ?? '',
               publicKey: uuid.v4(),
               secretKey: uuid.v4())
           .toJson());
@@ -89,6 +91,87 @@ Future configureServer(Angel app) async {
 
     res.redirect('/applications');
   });
+
+  Future<bool> resolveApplication(String id, User user,
+      Service applicationService, RequestContext req) async {
+    var application = await applicationService.read(id).then(Application.parse);
+
+    if (application.userId != user.id) {
+      throw new AngelHttpException.forbidden(
+          message: 'That is not your application.');
+    }
+
+    req.inject(Application, application);
+    return true;
+  }
+
+  var modifyApplicationValidator = applicationValidator.extend({
+    'csrf_token*': isNonEmptyString,
+    'mode*': isIn(['edit', 'delete']),
+  });
+
+  router.chain(resolveApplication)
+    ..get('/applications/:id', (Application application, User user, Uuid uuid,
+        RequestContext req, ResponseContext res) {
+      req.session
+        ..['csrf_token'] = uuid.v4()
+        ..['csrf_expiry'] = new DateTime.now()
+            .toUtc()
+            .add(const Duration(hours: 1))
+            .millisecondsSinceEpoch;
+      return res.render('application', {
+        'title': application.name,
+        'user': user,
+        'app': application,
+        'csrf_token': req.session['csrf_token'],
+        'errors': [],
+      });
+    })
+    ..post('/applications/:id', (Application application,
+        Service applicationService,
+        RequestContext req,
+        ResponseContext res) async {
+      var csrfToken = req.session.remove('csrf_token') as String;
+      var csrfExpiry = req.session.remove('csrf_expiry') as int;
+
+      if (csrfToken != null && csrfExpiry != null) {
+        var validation = modifyApplicationValidator.check(await req.lazyBody());
+
+        if (validation.errors.isEmpty) {
+          if (validation.data['csrf_token'] == csrfToken) {
+            var now = new DateTime.now().toUtc();
+            var expiry = new DateTime.fromMillisecondsSinceEpoch(csrfExpiry);
+
+            if (now.isBefore(expiry)) {
+              if (validation.data['mode'] == 'edit') {
+                application
+                  ..name = validation.data['name']
+                  ..description = validation.data['description']
+                  ..redirectUris = validation.data['redirect_uris'];
+                var modified = await applicationService.modify(
+                    application.id, application.toJson());
+                print('Modified: $modified');
+              } else if (validation.data['mode'] == 'delete') {
+                var deleted =
+                    await await applicationService.remove(application.id);
+                print('Deleted: $deleted');
+              }
+            } else {
+              print('CSRF expired: $expiry');
+            }
+          } else {
+            print(
+                'CSRF mismatch: ${validation.data['csrf_token']} != $csrfToken');
+          }
+        } else {
+          print('Validation errors: ${validation.errors}');
+        }
+      } else {
+        print('No CSRF token or expiry');
+      }
+
+      res.redirect('/applications');
+    });
 
   router.get('/settings',
       (User user, Service authTokenService, ResponseContext res) async {
@@ -102,7 +185,7 @@ Future configureServer(Angel app) async {
     await res.render('settings', {
       'title': 'Account Settings',
       'user': user,
-      'tokens': tokens,
+      'tokens': tokens.where((t) => !t.expired),
     });
   });
 

@@ -4,6 +4,7 @@ import 'package:angel_framework/angel_framework.dart';
 import 'package:angel_oauth2/angel_oauth2.dart' as auth;
 import 'package:angel_validate/angel_validate.dart';
 import 'package:http/http.dart' as http;
+import 'package:mailer/mailer.dart';
 import 'package:uuid/uuid.dart';
 import 'models/models.dart';
 import 'account_settings.dart' as account_settings;
@@ -123,6 +124,8 @@ class _OAuth2 extends auth.AuthorizationServer<Application, User> {
 
   Service get authTokenService => app.service('api/auth_tokens');
 
+  Service get userService => app.service('api/users');
+
   @override
   Future<Application> findClient(String clientId) async {
     Iterable<Application> applications = await applicationService.index({
@@ -159,8 +162,25 @@ class _OAuth2 extends auth.AuthorizationServer<Application, User> {
     var accessScopes = findScopes(scopes);
 
     if (accessScopes.isEmpty) {
-      throw new AngelHttpException.badRequest(
-          message: 'You must request at least one access scope.');
+      throw new auth.AuthorizationException(
+        new auth.ErrorResponse(
+          auth.ErrorResponse.invalidScope,
+          'You must request at least one access scope.',
+          state,
+        ),
+      );
+    }
+
+    var validRedirects = (client.redirectUris ??= '').split(',');
+
+    if (!validRedirects.contains(redirectUri)) {
+      throw new auth.AuthorizationException(
+        new auth.ErrorResponse(
+          auth.ErrorResponse.invalidRequest,
+          'Invalid redirect URI.',
+          state,
+        ),
+      );
     }
 
     var user = req.grab<User>(User);
@@ -271,6 +291,7 @@ class _OAuth2 extends auth.AuthorizationServer<Application, User> {
     if (existing.isNotEmpty) {
       token = existing.first;
       token
+        ..application = null
         ..createdAt = new DateTime.now().toUtc()
         ..state = code.state
         ..scopes = code.scopes;
@@ -289,6 +310,37 @@ class _OAuth2 extends auth.AuthorizationServer<Application, User> {
       );
       token =
           await authTokenService.create(token.toJson()).then(AuthToken.parse);
+
+      var application = await applicationService
+          .read(code.applicationId)
+          .then(Application.parse);
+      var user = await userService.read(code.userId).then(User.parse);
+      var transport = app.container.make(SmtpTransport) as SmtpTransport;
+
+      var envelope = new Envelope()
+        ..from = app.configuration['mail']['from']
+        ..fromName = 'Auth HF 2FA'
+        ..subject = 'You just signed in to ${application.name} via Auth HF'
+        ..recipients.add(user.email);
+
+      envelope.html = '''
+        <h1>${envelope.subject}</h1>
+        <p>
+          You received this e-mail because someone has just granted a third-party
+          application access to your HackForums.net account via Auth HF.
+          <br><br>
+          <ul>
+            <li><b>Application Name: </b>${application.name}</li>
+            <li><b>Application Description: </b>${application.description}</li>
+          </ul>
+          <br><br>
+          If you didn't attempt this login, then send a response to this e-mail
+          immediately, and we will help you as soon as possible.
+        </p>
+        '''
+          .trim();
+
+      await transport.send(envelope).timeout(const Duration(minutes: 1));
     }
 
     return new auth.AuthorizationTokenResponse(
