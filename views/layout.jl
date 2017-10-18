@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="/bower_components/font-awesome/css/font-awesome.min.css">
     <link rel="stylesheet" href="/css/site.css">
     <block name="css"></block>
+    {{- gad }}
 </head>
 <body>
     <block name="body"></block>

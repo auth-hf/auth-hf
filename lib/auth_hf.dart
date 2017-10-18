@@ -27,6 +27,24 @@ Future configureServer(Angel app) async {
     );
   }));
 
+  // Temp fix for AdSense
+  var renderer = app.viewGenerator;
+
+  app.viewGenerator = (path, [locals]) {
+    return renderer(
+        path,
+        new Map.from(locals ?? {})
+          ..['gad'] = '''
+    <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+    <script>
+        (adsbygoogle = window.adsbygoogle || []).push({
+            google_ad_client: "ca-pub-2116133816688639",
+            enable_page_level_ads: true
+        });
+    </script>'''
+              .trim());
+  };
+
   // DI
   Map mailConfig = app.configuration['mail'];
   app.inject('baseUrl', Uri.parse(app.configuration['base_url']));
@@ -100,16 +118,14 @@ Future configureServer(Angel app) async {
       print(e.stackTrace);
     }
 
-    if (e is AuthorizationException)
-      return e.toJson();
+    if (e is AuthorizationException) return e.toJson();
 
     if (req.path.endsWith('.js') || req.path.endsWith('.css'))
       return oldHandler(e, req, res);
 
     var errorMessage = e.error?.toString() ?? e.message ?? e.toString();
 
-    if (app.isProduction)
-      errorMessage = 'Hang in there. We\'re working on it.';
+    if (app.isProduction) errorMessage = 'Hang in there. We\'re working on it.';
 
     return res.render('error', {
       'title': 'Error ${e.statusCode}',
