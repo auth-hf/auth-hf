@@ -27,7 +27,7 @@
                  data-ad-slot="9060681851"></ins>
         </div>
     </div>
-    <section class="hero is-dark is-bold">
+    <!--<section class="hero is-dark is-bold">
         <div class="hero-body">
             <div class="container has-text-centered">
                 <h2 class="subtitle">
@@ -38,7 +38,7 @@
                 </h2>
             </div>
         </div>
-    </section>
+    </section>-->
     <script src="/bower_components/jquery/dist/jquery.min.js"></script>
     <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-68026607-4"></script>
