@@ -1,5 +1,8 @@
 $(function () {
-    (adsbygoogle = window.adsbygoogle || []).push({});
+    (adsbygoogle = window.adsbygoogle || []).push({
+            google_ad_client: "ca-pub-2116133816688639",
+            enable_page_level_ads: true
+        });
 
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
