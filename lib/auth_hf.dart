@@ -84,10 +84,12 @@ Future configureServer(Angel app) async {
     );
   });
 
+  /*
   app.use(cors(new CorsOptions(origin: [
     new RegExp(r'([a-z]+\.)?auth-hf.com/?'),
     new RegExp(r'http://localhost:[0-9]+/?'),
   ])));
+  */
 
   app.use(auth.parse);
 
