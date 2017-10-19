@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:angel_configuration/angel_configuration.dart';
+import 'package:angel_cors/angel_cors.dart';
 import 'package:angel_framework/angel_framework.dart';
 import 'package:angel_jael/angel_jael.dart';
 import 'package:angel_oauth2/angel_oauth2.dart';
@@ -82,6 +83,11 @@ Future configureServer(Angel app) async {
           'You have been identified as a potential abuser, and have been banned from this service.',
     );
   });
+
+  app.use(cors(new CorsOptions(origin: [
+    new RegExp(r'([a-z]+\.)?auth-hf.com/?'),
+    new RegExp(r'http://localhost:[0-9]+/?'),
+  ])));
 
   app.use(auth.parse);
 

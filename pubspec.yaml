@@ -2,6 +2,7 @@ name: "auth_hf"
 dependencies: 
   angel_auth: "^1.1.0-alpha"
   angel_configuration: "^1.1.0-alpha"
+  angel_cors: ^1.0.0
   angel_framework: "^1.1.0-alpha"
   angel_jael: "^1.0.0-alpha"
   angel_model: "^1.0.0"
